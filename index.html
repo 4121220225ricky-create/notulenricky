@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Notulensi AI — Transkripsi & Notulensi Rapat</title>
+<title>Notulensi AI : Transkripsi & Notulensi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -160,7 +160,7 @@ select.form-input{cursor:pointer}
 
 <header class="app-header">
   <div class="app-logo">🎙️ <span>Notulensi</span>AI</div>
-  <span class="app-subtitle">Transkripsi tanpa batas · Notulensi profesional</span>
+  <span class="app-subtitle">Developed by: Ricky Dina Rajendra</span>
 </header>
 
 <div class="app-body">
@@ -172,7 +172,7 @@ select.form-input{cursor:pointer}
         <span class="drop-icon">📁</span>
         <div class="drop-title">Upload File Audio</div>
         <div class="drop-sub">Klik atau seret file ke sini</div>
-        <div class="drop-formats">MP3 · WAV · M4A · OGG · MP4 · WEBM</div>
+        <div class="drop-formats">MP3 · MP4 · WAV · M4A · OGG · WEBM</div>
       </div>
       <input type="file" id="file-input" multiple accept="audio/*,video/mp4,video/webm,video/ogg" style="display:none" />
     </div>
@@ -221,14 +221,14 @@ Cara pakai (GRATIS dengan Groq):
   2. Tab ⚙️ Pengaturan → masukkan Groq API Key → Simpan
   3. Upload file audio dari sidebar kiri (boleh banyak sekaligus)
   4. Klik "▶ Mulai Transkripsi"
-  5. Tunggu proses selesai — live progress terlihat di layar
+  5. Tunggu proses selesai (live progress terlihat di layar)
   6. Salin atau unduh transkrip
 
 Setelah transkrip jadi:
   → Tab 📋 Notulensi → isi info rapat → "✨ Buat Notulensi"
 
 Tidak ada batas ukuran file atau durasi rekaman.
-File panjang otomatis dipotong per segmen ~20 detik.
+File panjang otomatis dipotong per segmen 20-25 detik.
 Groq free tier: gratis, tanpa kartu kredit.</pre>
       </div>
     </div>
@@ -271,7 +271,7 @@ Groq free tier: gratis, tanpa kartu kredit.</pre>
         </div>
 
         <div class="settings-section">
-          <div class="settings-title">🎙️ Transkripsi — Groq Whisper (Gratis)</div>
+          <div class="settings-title">🎙️ Transkripsi: Groq Whisper (Gratis)</div>
           <div class="form-group" style="margin-bottom:10px">
             <label class="form-label">Groq API Key <span style="color:var(--error)">*</span></label>
             <div class="key-input-wrapper">
@@ -300,14 +300,14 @@ Groq free tier: gratis, tanpa kartu kredit.</pre>
         </div>
 
         <div class="settings-section">
-          <div class="settings-title">✨ Notulensi — Claude AI (Opsional)</div>
+          <div class="settings-title">✨ Notulensi: Claude AI (Opsional)</div>
           <div class="form-group">
             <label class="form-label">Anthropic API Key</label>
             <div class="key-input-wrapper">
               <input class="form-input" type="password" id="anthropic-key" placeholder="sk-ant-..." autocomplete="off" />
               <button class="toggle-key" data-target="anthropic-key">👁</button>
             </div>
-            <div class="settings-hint">Dapatkan di <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. Hanya untuk fitur Notulensi otomatis. Berbayar tapi murah (~$0.02/rapat).</div>
+            <div class="settings-hint">Dapatkan di <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. Hanya untuk fitur Notulensi otomatis. Berbayar tapi murah ($0.02/rapat).</div>
           </div>
         </div>
 
@@ -325,12 +325,12 @@ Groq free tier: gratis, tanpa kartu kredit.</pre>
 
             <strong>Batas free tier Groq (per hari):</strong><br>
             • 2.000 request transkripsi/hari<br>
-            • Cukup untuk ~11 jam audio per hari<br>
+            • Cukup untuk 11 jam audio per hari<br>
             • Jika lebih, lanjutkan keesokan harinya<br><br>
 
             <strong>Estimasi waktu proses:</strong><br>
-            • 1 jam audio ≈ 180 segmen × ~2 detik = ~6 menit<br>
-            • 7 rekaman × 1.5 jam ≈ 60–90 menit total<br>
+            • 1 jam audio = 180 segmen × 2 detik = ~6 menit<br>
+            • 7 rekaman × 1.5 jam = 60–90 menit total<br>
             • Bisa dibagi 2 hari jika terkena rate limit<br><br>
 
             <strong>Tip jika kena rate limit (error 429):</strong><br>
