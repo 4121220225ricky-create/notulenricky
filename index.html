@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notulensi AI — Transkripsi & Notulensi Rapat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ── Tokens ── */
+:root {
+  --bg:#0f1117; --bg-card:#181c27; --bg-input:#1e2335; --bg-hover:#232840;
+  --border:#2a3050; --border-light:#374060;
+  --accent:#4f8ef7; --accent-dim:#2a4a8a; --accent-glow:rgba(79,142,247,0.15);
+  --success:#34c784; --warning:#f7b84f; --error:#f75858;
+  --text-1:#eef0f8; --text-2:#a0aac4; --text-3:#626880;
+  --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono','Fira Code',monospace;
+  --r:10px; --r-lg:16px; --shadow:0 4px 24px rgba(0,0,0,.4); --t:.18s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text-1);min-height:100vh;line-height:1.6;overflow:hidden}
+
+/* ── Layout ── */
+.app-header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;height:52px}
+.app-logo{font-size:1.25rem;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px}
+.app-logo span{color:var(--text-1)}
+.app-subtitle{color:var(--text-3);font-size:.8rem;margin-left:auto}
+.app-body{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 52px)}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-top{padding:14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drop-zone{border:2px dashed var(--border-light);border-radius:var(--r-lg);padding:18px 12px;text-align:center;cursor:pointer;transition:var(--t)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-glow)}
+.drop-icon{font-size:1.8rem;display:block;margin-bottom:4px}
+.drop-title{font-size:.85rem;font-weight:600;color:var(--text-1);margin-bottom:2px}
+.drop-sub{font-size:.73rem;color:var(--text-3)}
+.drop-formats{font-size:.68rem;color:var(--text-3);margin-top:5px}
+.sidebar-actions{padding:8px 12px;display:flex;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.file-list{flex:1;overflow-y:auto;padding:6px}
+.file-list::-webkit-scrollbar{width:3px}
+.file-list::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:3px}
+.file-list-empty{color:var(--text-3);font-size:.78rem;text-align:center;padding:20px 8px}
+.file-item{border-radius:var(--r);padding:8px 10px;cursor:pointer;border:1px solid transparent;margin-bottom:3px;transition:var(--t)}
+.file-item:hover{background:var(--bg-hover)}
+.file-item.active{background:var(--accent-glow);border-color:var(--accent-dim)}
+.file-item-header{display:flex;align-items:center;gap:5px}
+.file-status-icon{font-size:.8rem;flex-shrink:0}
+.file-name{font-size:.78rem;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-remove-btn{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:1rem;line-height:1;padding:0 3px;border-radius:4px;transition:var(--t)}
+.file-remove-btn:hover{color:var(--error);background:rgba(247,88,88,.1)}
+.file-meta{font-size:.68rem;color:var(--text-3);margin-top:2px;padding-left:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-progress-bar{height:2px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden}
+.file-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease}
+.file-item.processing .file-status-icon{display:inline-block;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Main ── */
+.main-content{display:flex;flex-direction:column;overflow:hidden;height:100%}
+.content-header{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;flex-shrink:0}
+.active-file-name{font-size:.82rem;font-weight:600;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0}
+.tab-btn{background:none;border:none;padding:9px 14px;color:var(--text-3);cursor:pointer;font-size:.8rem;font-weight:500;border-bottom:2px solid transparent;transition:var(--t);font-family:var(--sans)}
+.tab-btn:hover{color:var(--text-2)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none;flex:1;overflow-y:auto;min-height:0}
+.tab-panel.active{display:flex;flex-direction:column}
+.tab-panel::-webkit-scrollbar{width:4px}
+.tab-panel::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px}
+
+/* ── Transcript panel ── */
+.transcript-panel{flex:1;display:flex;flex-direction:column;padding:14px;gap:10px;min-height:0}
+.progress-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;flex-shrink:0}
+.progress-label{font-size:.76rem;color:var(--text-2);margin-bottom:7px;font-weight:500}
+.progress-bar-track{height:5px;background:var(--border);border-radius:5px;overflow:hidden;margin-bottom:7px}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#7eb8ff);border-radius:5px;transition:width .4s ease}
+.progress-message{font-size:.73rem;color:var(--text-3)}
+.output-toolbar{display:flex;justify-content:flex-end;gap:5px;flex-shrink:0}
+.transcript-box,.live-transcript-box{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;font-family:var(--mono);font-size:.8rem;color:var(--text-2);line-height:1.7;overflow-y:auto;white-space:pre-wrap;word-break:break-word;min-height:0}
+.live-transcript-box{color:var(--text-1);border-color:var(--accent-dim)}
+.live-label{font-size:.7rem;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.live-dot{width:6px;height:6px;background:var(--success);border-radius:50%;animation:blink 1s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Notulensi panel ── */
+.notulensi-panel{flex:1;display:flex;flex-direction:column;padding:14px;gap:10px;min-height:0}
+.meeting-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:.72rem;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}
+.form-input{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text-1);font-size:.81rem;font-family:var(--sans);outline:none;transition:border-color var(--t);width:100%}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text-3)}
+select.form-input{cursor:pointer}
+.notulensi-output{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;overflow-y:auto;line-height:1.75;min-height:0;color:var(--text-2);font-size:.85rem}
+.notulensi-output h1{font-size:1.15rem;color:var(--text-1);margin:14px 0 7px}
+.notulensi-output h2{font-size:.95rem;color:var(--accent);margin:12px 0 5px;border-bottom:1px solid var(--border);padding-bottom:3px}
+.notulensi-output h3{font-size:.88rem;color:var(--text-1);margin:9px 0 3px}
+.notulensi-output ul{padding-left:18px;margin:3px 0 7px}
+.notulensi-output li{margin-bottom:2px}
+.notulensi-output strong{color:var(--text-1)}
+.notulensi-output p{margin-bottom:7px}
+.notulensi-output::-webkit-scrollbar{width:4px}
+.notulensi-output::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px}
+
+/* ── Settings panel ── */
+.settings-panel{padding:18px;overflow-y:auto;flex:1;max-width:600px}
+.settings-section{margin-bottom:22px}
+.settings-title{font-size:.86rem;font-weight:700;color:var(--text-1);margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.settings-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.key-input-wrapper{position:relative;display:flex;align-items:center}
+.key-input-wrapper .form-input{padding-right:36px;font-family:var(--mono);font-size:.78rem}
+.toggle-key{position:absolute;right:7px;background:none;border:none;cursor:pointer;font-size:.88rem;padding:4px;line-height:1}
+.settings-hint{font-size:.72rem;color:var(--text-3);margin-top:3px}
+.settings-hint a{color:var(--accent);text-decoration:none}
+.settings-hint a:hover{text-decoration:underline}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.alert-box{background:rgba(79,142,247,.08);border:1px solid var(--accent-dim);border-radius:var(--r);padding:11px 13px;font-size:.78rem;color:var(--text-2);line-height:1.6;margin-bottom:14px}
+.alert-box strong{color:var(--accent)}
+.how-to{font-size:.8rem;color:var(--text-2);line-height:1.85}
+.how-to strong{color:var(--text-1)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:1px solid transparent;cursor:pointer;font-size:.78rem;font-weight:600;font-family:var(--sans);transition:var(--t);white-space:nowrap;line-height:1.4}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover:not(:disabled){background:#3d7ef0;box-shadow:0 0 10px rgba(79,142,247,.4)}
+.btn-secondary{background:var(--bg-input);color:var(--text-2);border-color:var(--border)}
+.btn-secondary:hover:not(:disabled){background:var(--bg-hover);color:var(--text-1)}
+.btn-danger{background:rgba(247,88,88,.1);color:var(--error);border-color:rgba(247,88,88,.3)}
+.btn-danger:hover:not(:disabled){background:rgba(247,88,88,.2)}
+.btn-sm{padding:5px 9px;font-size:.73rem}
+
+/* ── Toast ── */
+#toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:6px;z-index:9999}
+.toast{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:9px 14px;font-size:.8rem;color:var(--text-1);box-shadow:var(--shadow);transform:translateX(110px);opacity:0;transition:.25s ease;max-width:300px}
+.toast.show{transform:translateX(0);opacity:1}
+.toast-success{border-left:3px solid var(--success)}
+.toast-warning{border-left:3px solid var(--warning)}
+.toast-error{border-left:3px solid var(--error)}
+.toast-info{border-left:3px solid var(--accent)}
+
+/* ── Responsive ── */
+@media(max-width:720px){
+  body{overflow:auto}
+  .app-body{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:auto}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:260px}
+  .main-content{height:70vh}
+  .meeting-info-grid{grid-template-columns:1fr}
+  .settings-row{grid-template-columns:1fr}
+  .app-subtitle{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-logo">🎙️ <span>Notulensi</span>AI</div>
+  <span class="app-subtitle">Transkripsi tanpa batas · Notulensi profesional</span>
+</header>
+
+<div class="app-body">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="drop-zone" id="drop-zone">
+        <span class="drop-icon">📁</span>
+        <div class="drop-title">Upload File Audio</div>
+        <div class="drop-sub">Klik atau seret file ke sini</div>
+        <div class="drop-formats">MP3 · WAV · M4A · OGG · MP4 · WEBM</div>
+      </div>
+      <input type="file" id="file-input" multiple accept="audio/*,video/mp4,video/webm,video/ogg" style="display:none" />
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn btn-primary" id="btn-transcribe-all" style="flex:1">▶ Mulai Transkripsi</button>
+      <button class="btn btn-danger btn-sm" id="btn-cancel" style="display:none">⛔ Batal</button>
+      <button class="btn btn-secondary btn-sm" id="btn-clear-done" title="Hapus file selesai/error">🗑</button>
+    </div>
+
+    <div class="file-list" id="file-list">
+      <div class="file-list-empty">Belum ada file. Upload audio di atas.</div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main-content">
+    <div class="content-header">
+      <span class="active-file-name" id="active-file-info">Pilih atau upload file audio untuk memulai</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="transkrip">📝 Transkrip</button>
+      <button class="tab-btn" data-tab="notulensi">📋 Notulensi</button>
+      <button class="tab-btn" data-tab="pengaturan">⚙️ Pengaturan</button>
+    </div>
+
+    <!-- Tab: Transkrip -->
+    <div class="tab-panel active" data-panel="transkrip">
+      <div class="transcript-panel">
+        <div class="progress-section" id="progress-section" style="display:none">
+          <div class="progress-label">Progres Transkripsi</div>
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar-fill" style="width:0%"></div></div>
+          <div class="progress-message" id="progress-message">Memulai...</div>
+        </div>
+        <div class="output-toolbar">
+          <button class="btn btn-secondary btn-sm" id="btn-copy-transcript">📋 Salin</button>
+          <button class="btn btn-secondary btn-sm" id="btn-download-transcript">⬇ Unduh .txt</button>
+        </div>
+        <div class="live-label" id="live-label" style="display:none"><span class="live-dot"></span> Live Transkrip</div>
+        <pre class="live-transcript-box" id="live-transcript" style="display:none"></pre>
+        <pre class="transcript-box" id="transcript-output">Selamat datang di Notulensi AI 🎙️
+
+Cara pakai (GRATIS dengan Groq):
+  1. Daftar gratis di console.groq.com → buat API Key
+  2. Tab ⚙️ Pengaturan → masukkan Groq API Key → Simpan
+  3. Upload file audio dari sidebar kiri (boleh banyak sekaligus)
+  4. Klik "▶ Mulai Transkripsi"
+  5. Tunggu proses selesai — live progress terlihat di layar
+  6. Salin atau unduh transkrip
+
+Setelah transkrip jadi:
+  → Tab 📋 Notulensi → isi info rapat → "✨ Buat Notulensi"
+
+Tidak ada batas ukuran file atau durasi rekaman.
+File panjang otomatis dipotong per segmen ~20 detik.
+Groq free tier: gratis, tanpa kartu kredit.</pre>
+      </div>
+    </div>
+
+    <!-- Tab: Notulensi -->
+    <div class="tab-panel" data-panel="notulensi">
+      <div class="notulensi-panel">
+        <div class="meeting-info-grid">
+          <div class="form-group">
+            <label class="form-label">Judul Rapat</label>
+            <input class="form-input" type="text" id="meeting-title" placeholder="cth: Rapat Koordinasi Proyek X" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tanggal</label>
+            <input class="form-input" type="date" id="meeting-date" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Peserta (opsional)</label>
+            <input class="form-input" type="text" id="meeting-attendees" placeholder="cth: Budi, Sari, Pak Joko..." />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Konteks tambahan (opsional)</label>
+            <input class="form-input" type="text" id="meeting-context" placeholder="cth: Evaluasi kinerja Q2 divisi pemasaran" />
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0">
+          <button class="btn btn-primary" id="btn-generate-notulensi">✨ Buat Notulensi</button>
+          <button class="btn btn-secondary btn-sm" id="btn-copy-notulensi">📋 Salin</button>
+          <button class="btn btn-secondary btn-sm" id="btn-download-notulensi">⬇ Unduh .md</button>
+        </div>
+        <div class="notulensi-output" id="notulensi-output">Notulensi belum dibuat. Klik "Buat Notulensi" setelah transkrip selesai.</div>
+      </div>
+    </div>
+
+    <!-- Tab: Pengaturan -->
+    <div class="tab-panel" data-panel="pengaturan">
+      <div class="settings-panel">
+        <div class="alert-box">
+          <strong>🆓 Gratis 100% dengan Groq:</strong> Daftar di <a href="https://console.groq.com" target="_blank">console.groq.com</a> → buat API Key → masukkan di bawah. Tidak perlu kartu kredit. API key hanya dikirim langsung ke Groq/Anthropic, tidak ke server kami.
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">🎙️ Transkripsi — Groq Whisper (Gratis)</div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Groq API Key <span style="color:var(--error)">*</span></label>
+            <div class="key-input-wrapper">
+              <input class="form-input" type="password" id="openai-key" placeholder="gsk_..." autocomplete="off" />
+              <button class="toggle-key" data-target="openai-key">👁</button>
+            </div>
+            <div class="settings-hint">Daftar gratis di <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — tidak perlu kartu kredit. Free tier: 2.000 request/hari.</div>
+          </div>
+          <div class="settings-row">
+            <div class="form-group">
+              <label class="form-label">Bahasa Audio</label>
+              <select class="form-input" id="language">
+                <option value="id">🇮🇩 Indonesia</option>
+                <option value="auto">🌐 Auto-detect</option>
+                <option value="en">🇺🇸 English</option>
+                <option value="jv">Jawa</option>
+                <option value="su">Sunda</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Durasi Segmen (detik)</label>
+              <input class="form-input" type="number" id="chunk-duration" value="20" min="10" max="25" />
+              <div class="settings-hint">Maks. 25 detik agar file &lt;25MB (batas Groq free tier)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">✨ Notulensi — Claude AI (Opsional)</div>
+          <div class="form-group">
+            <label class="form-label">Anthropic API Key</label>
+            <div class="key-input-wrapper">
+              <input class="form-input" type="password" id="anthropic-key" placeholder="sk-ant-..." autocomplete="off" />
+              <button class="toggle-key" data-target="anthropic-key">👁</button>
+            </div>
+            <div class="settings-hint">Dapatkan di <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. Hanya untuk fitur Notulensi otomatis. Berbayar tapi murah (~$0.02/rapat).</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-save-settings">💾 Simpan Pengaturan</button>
+
+        <div style="height:20px"></div>
+        <div class="settings-section">
+          <div class="settings-title">📖 Cara Penggunaan & Info Groq Free Tier</div>
+          <div class="how-to">
+            <strong>Setup Groq (sekali, gratis):</strong><br>
+            1. Buka <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a><br>
+            2. Login/daftar (gratis, tanpa kartu kredit)<br>
+            3. Klik "Create API Key" → salin key-nya<br>
+            4. Tempel di kolom "Groq API Key" di atas → Simpan<br><br>
+
+            <strong>Batas free tier Groq (per hari):</strong><br>
+            • 2.000 request transkripsi/hari<br>
+            • Cukup untuk ~11 jam audio per hari<br>
+            • Jika lebih, lanjutkan keesokan harinya<br><br>
+
+            <strong>Estimasi waktu proses:</strong><br>
+            • 1 jam audio ≈ 180 segmen × ~2 detik = ~6 menit<br>
+            • 7 rekaman × 1.5 jam ≈ 60–90 menit total<br>
+            • Bisa dibagi 2 hari jika terkena rate limit<br><br>
+
+            <strong>Tip jika kena rate limit (error 429):</strong><br>
+            Website akan otomatis tunggu 60 detik lalu lanjut. Jangan tutup browser.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   TRANSCRIBER ENGINE
+   ══════════════════════════════════════════════════════ */
+class AudioTranscriber {
+  constructor(opts = {}) {
+    this.chunkDuration = opts.chunkDuration || 55;
+    this.onProgress   = opts.onProgress   || (() => {});
+    this.onChunkDone  = opts.onChunkDone  || (() => {});
+    this.cancelled    = false;
+  }
+
+  cancel() { this.cancelled = true; }
+
+  splitBuffer(buf, durSec) {
+    const sr = buf.sampleRate, ch = buf.numberOfChannels;
+    const chunkSamples = Math.floor(sr * durSec);
+    const chunks = [];
+    let off = 0;
+    while (off < buf.length) {
+      const end = Math.min(off + chunkSamples, buf.length);
+      const len = end - off;
+      const tmp = new OfflineAudioContext(ch, len, sr).createBuffer(ch, len, sr);
+      for (let c = 0; c < ch; c++) tmp.copyToChannel(buf.getChannelData(c).slice(off, end), c);
+      chunks.push({ buffer: tmp, startSec: off / sr, endSec: end / sr });
+      off = end;
+    }
+    return chunks;
+  }
+
+  bufToWav(buf) {
+    const sr = buf.sampleRate;
+    let samples;
+    if (buf.numberOfChannels === 1) {
+      samples = buf.getChannelData(0);
+    } else {
+      const L = buf.getChannelData(0), R = buf.getChannelData(1);
+      samples = new Float32Array(L.length);
+      for (let i = 0; i < L.length; i++) samples[i] = (L[i] + R[i]) / 2;
+    }
+    const dataLen = samples.length * 2;
+    const ab = new ArrayBuffer(44 + dataLen);
+    const v  = new DataView(ab);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + dataLen, true);
+    ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    ws(36, 'data'); v.setUint32(40, dataLen, true);
+    let o = 44;
+    for (let i = 0; i < samples.length; i++, o += 2) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Blob([ab], { type: 'audio/wav' });
+  }
+
+  fmtTime(sec) {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
+    if (h > 0) return `${h}j ${m}m ${s}d`;
+    if (m > 0) return `${m}m ${s}d`;
+    return `${s}d`;
+  }
+
+  async decode(file) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      const decoded = await ctx.decodeAudioData(await file.arrayBuffer());
+      await ctx.close();
+      return decoded;
+    } catch (e) {
+      await ctx.close();
+      throw new Error(`Gagal decode audio: ${e.message}. Coba format MP3, WAV, atau M4A.`);
+    }
+  }
+
+  async whisperChunk(wav, apiKey, lang, idx, total) {
+    // Check file size before sending — Groq free tier limit is 25MB
+    if (wav.size > 24 * 1024 * 1024) {
+      throw new Error(`Segmen ${idx+1} terlalu besar (${(wav.size/1024/1024).toFixed(1)}MB). Kurangi durasi segmen di Pengaturan.`);
+    }
+    const fd = new FormData();
+    fd.append('file', wav, `chunk_${idx}.wav`);
+    fd.append('model', 'whisper-large-v3-turbo');
+    if (lang && lang !== 'auto') fd.append('language', lang);
+    fd.append('response_format', 'text');
+
+    // Retry loop — handle Groq rate limit (429) with backoff
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: fd,
+      });
+
+      if (res.ok) return await res.text();
+
+      if (res.status === 429) {
+        // Rate limited — check retry-after header or wait 60s
+        const retryAfter = parseInt(res.headers.get('retry-after') || '60');
+        const waitSec = Math.min(retryAfter + 2, 120);
+        this.onProgress({
+          percent: -1, // signal: don't update bar
+          message: `⏳ Rate limit Groq — menunggu ${waitSec} detik lalu lanjut... (segmen ${idx+1}/${total})`,
+          rateLimit: true,
+        });
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+        if (this.cancelled) throw new Error('Transkripsi dibatalkan.');
+        continue; // retry
+      }
+
+      // Other error
+      const errText = await res.text();
+      throw new Error(`Groq error segmen ${idx+1}/${total} [${res.status}]: ${errText}`);
+    }
+    throw new Error(`Gagal setelah beberapa percobaan pada segmen ${idx+1}. Coba lagi nanti.`);
+  }
+
+  async transcribe(file, { apiKey, language = 'id' } = {}) {
+    this.cancelled = false;
+    this.onProgress({ percent: 0, message: 'Mendekode file audio...' });
+    const buf = await this.decode(file);
+    const dur = buf.duration;
+    this.onProgress({ percent: 5, message: `Audio OK — durasi: ${this.fmtTime(dur)}` });
+
+    const chunks = this.splitBuffer(buf, this.chunkDuration);
+    const total  = chunks.length;
+    this.onProgress({ percent: 5, message: `Dibagi jadi ${total} segmen (~${this.fmtTime(this.chunkDuration)}/segmen)` });
+
+    let full = '';
+    for (let i = 0; i < total; i++) {
+      if (this.cancelled) throw new Error('Transkripsi dibatalkan.');
+      const pct = 5 + Math.round((i / total) * 93);
+      this.onProgress({
+        percent: pct,
+        message: `Segmen ${i+1}/${total} — ${this.fmtTime(chunks[i].startSec)}–${this.fmtTime(chunks[i].endSec)}`,
+      });
+      const wav  = this.bufToWav(chunks[i].buffer);
+      const text = (await this.whisperChunk(wav, apiKey, language, i, total)).trim();
+      if (text) full += (full ? ' ' : '') + text;
+      this.onChunkDone({ chunkIndex: i, totalChunks: total, text, startSec: chunks[i].startSec });
+
+      // Small delay between requests to be kind to rate limits
+      if (i < total - 1 && !this.cancelled) {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+    this.onProgress({ percent: 100, message: 'Selesai!' });
+    return full;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   NOTULENSI GENERATOR
+   ══════════════════════════════════════════════════════ */
+class NotulensiGenerator {
+  async generate(transcript, { apiKey, meetingTitle='', meetingDate='', attendees='', additionalContext='' } = {}) {
+    if (!apiKey) throw new Error('Anthropic API Key diperlukan.');
+    if (!transcript || transcript.trim().length < 50) throw new Error('Transkrip terlalu pendek.');
+
+    const ctx = [
+      meetingTitle ? `Judul Rapat: ${meetingTitle}` : '',
+      meetingDate  ? `Tanggal: ${meetingDate}` : '',
+      attendees    ? `Peserta: ${attendees}` : '',
+      additionalContext ? `Konteks: ${additionalContext}` : '',
+    ].filter(Boolean).join('\n');
+
+    const system = `Anda adalah sekretaris profesional berpengalaman yang ahli membuat notulensi rapat terstruktur dalam Bahasa Indonesia.
+
+Ubah transkrip rapat (hasil transkripsi otomatis, mungkin ada kesalahan ejaan) menjadi notulensi rapat yang rapi dan profesional.
+
+Format notulensi:
+# NOTULENSI RAPAT
+## Informasi Rapat (judul, tanggal, peserta jika ada)
+## Agenda / Topik yang Dibahas
+## Jalannya Rapat (ringkasan diskusi per topik, kronologis)
+## Keputusan yang Diambil
+## Tindak Lanjut / Action Items (siapa, apa, kapan)
+## Kesimpulan
+
+Aturan: gunakan bahasa formal, hilangkan filler words, pertahankan semua informasi penting dan keputusan, tandai hal tidak jelas dengan [tidak jelas], gunakan markdown.`;
+
+    const userMsg = `${ctx ? ctx + '\n\n' : ''}Transkrip rapat:\n---\n${transcript}\n---\n\nBuat notulensi rapat yang profesional dari transkrip di atas.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system,
+        messages: [{ role: 'user', content: userMsg }],
+      }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(`Anthropic API: ${e.error?.message || res.statusText}`);
+    }
+    const data = await res.json();
+    return data.content?.[0]?.text || '';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   APP
+   ══════════════════════════════════════════════════════ */
+const App = {
+  state: {
+    files: [],
+    activeId: null,
+    processing: false,
+    transcriber: null,
+  },
+
+  init() {
+    this.bind();
+    this.loadSettings();
+    this.renderList();
+  },
+
+  /* ── Settings ── */
+  loadSettings() {
+    try {
+      const s = JSON.parse(localStorage.getItem('nai_cfg') || '{}');
+      if (s.ok) { document.getElementById('openai-key').value = s.ok; }
+      if (s.ak) { document.getElementById('anthropic-key').value = s.ak; }
+      if (s.lang) { document.getElementById('language').value = s.lang; }
+    } catch(_) {}
+  },
+  saveSettings() {
+    const cfg = {
+      ok:   document.getElementById('openai-key').value.trim(),
+      ak:   document.getElementById('anthropic-key').value.trim(),
+      lang: document.getElementById('language').value,
+    };
+    localStorage.setItem('nai_cfg', JSON.stringify(cfg));
+    this.toast('Pengaturan tersimpan!', 'success');
+  },
+
+  /* ── Bind ── */
+  bind() {
+    const dz = document.getElementById('drop-zone');
+    const fi = document.getElementById('file-input');
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); this.addFiles([...e.dataTransfer.files]); });
+    fi.addEventListener('change', e => { this.addFiles([...e.target.files]); fi.value = ''; });
+
+    document.getElementById('btn-transcribe-all').addEventListener('click',   () => this.transcribeAll());
+    document.getElementById('btn-cancel').addEventListener('click',            () => this.cancel());
+    document.getElementById('btn-clear-done').addEventListener('click',        () => this.clearDone());
+    document.getElementById('btn-save-settings').addEventListener('click',     () => this.saveSettings());
+    document.getElementById('btn-generate-notulensi').addEventListener('click',() => this.genNotulensi());
+    document.getElementById('btn-copy-transcript').addEventListener('click',   () => this.copyText('transcript'));
+    document.getElementById('btn-copy-notulensi').addEventListener('click',    () => this.copyText('notulensi'));
+    document.getElementById('btn-download-transcript').addEventListener('click',() => this.download('transcript'));
+    document.getElementById('btn-download-notulensi').addEventListener('click', () => this.download('notulensi'));
+
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.addEventListener('click', () => this.showTab(b.dataset.tab))
+    );
+    document.querySelectorAll('.toggle-key').forEach(b =>
+      b.addEventListener('click', () => {
+        const inp = document.getElementById(b.dataset.target);
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+        b.textContent = inp.type === 'password' ? '👁' : '🙈';
+      })
+    );
+  },
+
+  /* ── Files ── */
+  uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); },
+
+  addFiles(files) {
+    const ok = files.filter(f => f.type.startsWith('audio/') || ['video/mp4','video/webm','video/ogg'].includes(f.type));
+    const bad = files.length - ok.length;
+    if (bad) this.toast(`${bad} file diabaikan (bukan audio)`, 'warning');
+    ok.forEach(f => this.state.files.push({ id: this.uid(), file: f, status: 'pending', transcript: '', notulensi: '', progress: {}, error: null }));
+    this.renderList();
+    if (!this.state.activeId && this.state.files.length) this.setActive(this.state.files[0].id);
+  },
+
+  removeFile(id) {
+    this.state.files = this.state.files.filter(f => f.id !== id);
+    if (this.state.activeId === id) this.state.activeId = this.state.files[0]?.id || null;
+    this.renderList();
+    this.renderActive();
+  },
+
+  setActive(id) {
+    this.state.activeId = id;
+    this.renderList();
+    this.renderActive();
+  },
+
+  active() { return this.state.files.find(f => f.id === this.state.activeId); },
+
+  clearDone() {
+    this.state.files = this.state.files.filter(f => !['done','error','cancelled'].includes(f.status));
+    if (!this.state.files.find(f => f.id === this.state.activeId)) this.state.activeId = this.state.files[0]?.id || null;
+    this.renderList();
+    this.renderActive();
+  },
+
+  /* ── Transcription ── */
+  async transcribeAll() {
+    if (this.state.processing) return;
+    const key = document.getElementById('openai-key').value.trim();
+    if (!key) { this.toast('Masukkan Groq API Key di Pengaturan!', 'error'); this.showTab('pengaturan'); return; }
+    const pending = this.state.files.filter(f => f.status === 'pending');
+    if (!pending.length) { this.toast('Tidak ada file yang menunggu diproses', 'warning'); return; }
+
+    this.state.processing = true;
+    this.updateUI();
+
+    const lang  = document.getElementById('language').value;
+    const chunk = parseInt(document.getElementById('chunk-duration').value) || 55;
+
+    for (const f of pending) {
+      if (!this.state.processing) break;
+      await this.transcribeOne(f.id, key, lang, chunk);
+    }
+    this.state.processing = false;
+    this.state.transcriber = null;
+    this.updateUI();
+  },
+
+  async transcribeOne(id, key, lang, chunkDur) {
+    const item = this.state.files.find(f => f.id === id);
+    if (!item) return;
+    item.status = 'processing'; item.error = null;
+    this.setActive(id);
+
+    // clear live box
+    const live = document.getElementById('live-transcript');
+    if (live) live.textContent = '';
+
+    const t = new AudioTranscriber({
+      chunkDuration: chunkDur,
+      onProgress: prog => {
+        // Always store message; only update stored percent if not a rate-limit pause
+        if (!prog.rateLimit) item.progress = prog;
+        else item.progress = { ...item.progress, message: prog.message };
+        if (this.state.activeId === id) this.renderProgress(prog);
+        this.renderList();
+      },
+      onChunkDone: chunk => {
+        if (this.state.activeId === id && chunk.text) {
+          const lb = document.getElementById('live-transcript');
+          if (lb) { lb.textContent += (lb.textContent ? ' ' : '') + chunk.text; lb.scrollTop = lb.scrollHeight; }
+        }
+      },
+    });
+    this.state.transcriber = t;
+
+    try {
+      item.transcript = await t.transcribe(item.file, { apiKey: key, language: lang });
+      item.status = 'done';
+      item.progress = { percent: 100, message: 'Selesai!' };
+      this.toast(`✅ ${item.file.name} — selesai!`, 'success');
+    } catch(e) {
+      item.status = e.message.includes('dibatalkan') ? 'cancelled' : 'error';
+      item.error = e.message;
+      if (item.status === 'error') this.toast(`❌ Error: ${e.message}`, 'error');
+    }
+    this.renderList();
+    this.renderActive();
+  },
+
+  cancel() {
+    if (this.state.transcriber) this.state.transcriber.cancel();
+    this.state.processing = false;
+    this.updateUI();
+    this.toast('Transkripsi dibatalkan', 'warning');
+  },
+
+  /* ── Notulensi ── */
+  async genNotulensi() {
+    const item = this.active();
+    if (!item?.transcript) { this.toast('Belum ada transkrip untuk file ini', 'warning'); return; }
+    const key = document.getElementById('anthropic-key').value.trim();
+    if (!key) { this.toast('Masukkan Anthropic API Key di Pengaturan!', 'error'); this.showTab('pengaturan'); return; }
+
+    const btn = document.getElementById('btn-generate-notulensi');
+    btn.disabled = true; btn.textContent = '⏳ Membuat notulensi...';
+    document.getElementById('notulensi-output').textContent = 'Menghubungi Claude AI...';
+
+    try {
+      const gen = new NotulensiGenerator();
+      item.notulensi = await gen.generate(item.transcript, {
+        apiKey: key,
+        meetingTitle: document.getElementById('meeting-title').value,
+        meetingDate:  document.getElementById('meeting-date').value,
+        attendees:    document.getElementById('meeting-attendees').value,
+        additionalContext: document.getElementById('meeting-context').value,
+      });
+      this.renderActive();
+      this.toast('Notulensi berhasil dibuat!', 'success');
+    } catch(e) {
+      document.getElementById('notulensi-output').textContent = `Error: ${e.message}`;
+      this.toast(`Gagal: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '✨ Buat Notulensi';
+    }
+  },
+
+  /* ── Render ── */
+  renderList() {
+    const c = document.getElementById('file-list');
+    if (!this.state.files.length) {
+      c.innerHTML = '<div class="file-list-empty">Belum ada file. Upload audio di atas.</div>';
+      return;
+    }
+    const icons = { pending:'⏳', processing:'🔄', done:'✅', error:'❌', cancelled:'⛔' };
+    c.innerHTML = this.state.files.map(f => {
+      const active = f.id === this.state.activeId;
+      const mb = (f.file.size / 1024 / 1024).toFixed(1);
+      const pct = f.progress?.percent || 0;
+      const bar = f.status === 'processing'
+        ? `<div class="file-progress-bar"><div class="file-progress-fill" style="width:${pct}%"></div></div>` : '';
+      const meta = f.status === 'processing'
+        ? `${mb} MB · ${f.progress?.message || ''}` : `${mb} MB · ${f.status}`;
+      return `<div class="file-item ${active?'active':''} ${f.status}" onclick="App.setActive('${f.id}')">
+        <div class="file-item-header">
+          <span class="file-status-icon">${icons[f.status]||'⏳'}</span>
+          <span class="file-name" title="${f.file.name}">${f.file.name}</span>
+          <button class="file-remove-btn" onclick="event.stopPropagation();App.removeFile('${f.id}')" title="Hapus">×</button>
+        </div>
+        <div class="file-meta">${meta}</div>${bar}</div>`;
+    }).join('');
+  },
+
+  renderActive() {
+    const item = this.active();
+    const tBox = document.getElementById('transcript-output');
+    const lBox = document.getElementById('live-transcript');
+    const lLbl = document.getElementById('live-label');
+    const prog = document.getElementById('progress-section');
+    const nBox = document.getElementById('notulensi-output');
+    const info = document.getElementById('active-file-info');
+
+    if (!item) {
+      tBox.style.display = 'block'; lBox.style.display = 'none'; lLbl.style.display = 'none';
+      prog.style.display = 'none';
+      tBox.textContent = 'Pilih file dari sidebar untuk melihat hasil.';
+      nBox.textContent = 'Notulensi belum dibuat.';
+      return;
+    }
+
+    if (info) info.textContent = item.file.name;
+
+    if (item.status === 'processing') {
+      tBox.style.display = 'none';
+      lBox.style.display = 'block';
+      lLbl.style.display = 'flex';
+      prog.style.display = 'block';
+      this.renderProgress(item.progress);
+    } else {
+      tBox.style.display = 'block';
+      lBox.style.display = 'none';
+      lLbl.style.display = 'none';
+      prog.style.display = 'none';
+      tBox.textContent = item.transcript
+        || (item.status === 'error'      ? `❌ Error: ${item.error}`
+          : item.status === 'cancelled'  ? '⛔ Transkripsi dibatalkan.'
+          : item.status === 'pending'    ? 'Belum diproses. Klik "Mulai Transkripsi".'
+          : '');
+    }
+
+    if (item.notulensi) {
+      nBox.innerHTML = this.md(item.notulensi);
+    } else {
+      nBox.textContent = 'Notulensi belum dibuat. Klik "Buat Notulensi" setelah transkrip selesai.';
+    }
+  },
+
+  renderProgress(p) {
+    const fill = document.getElementById('progress-bar-fill');
+    const msg  = document.getElementById('progress-message');
+    // Don't update bar % during rate-limit wait (percent === -1)
+    if (fill && p?.percent >= 0) fill.style.width = `${p.percent || 0}%`;
+    if (msg) msg.textContent = p?.message || '';
+  },
+
+  md(text) {
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+      .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g, m => `<ul>${m}</ul>`)
+      .replace(/\n\n/g,'</p><p>')
+      .replace(/\n/g,'<br>')
+      .replace(/^/,'<p>').replace(/$/,'</p>');
+  },
+
+  showTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+  },
+
+  updateUI() {
+    const p = this.state.processing;
+    const btn = document.getElementById('btn-transcribe-all');
+    btn.disabled = p;
+    btn.textContent = p ? '⏳ Memproses...' : '▶ Mulai Transkripsi';
+    document.getElementById('btn-cancel').style.display = p ? 'inline-flex' : 'none';
+  },
+
+  /* ── Copy / Download ── */
+  copyText(which) {
+    const item = this.active();
+    const text = which === 'transcript' ? item?.transcript : item?.notulensi;
+    if (!text) { this.toast('Belum ada teks untuk disalin', 'warning'); return; }
+    navigator.clipboard.writeText(text).then(() => this.toast('Teks disalin!', 'success'));
+  },
+
+  download(which) {
+    const item = this.active();
+    const text = which === 'transcript' ? item?.transcript : item?.notulensi;
+    const ext  = which === 'transcript' ? '_transkrip.txt' : '_notulensi.md';
+    if (!text) { this.toast('Belum ada teks untuk diunduh', 'warning'); return; }
+    const name = (item.file.name.replace(/\.[^.]+$/, '') + ext);
+    const url  = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const a    = Object.assign(document.createElement('a'), { href: url, download: name });
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /* ── Toast ── */
+  toast(msg, type = 'info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3500);
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
